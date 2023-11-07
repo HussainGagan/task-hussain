@@ -10,7 +10,9 @@
   <body>
     <!-- HEADER -->
     <header class="bg-nav">
-      <div class="container flex items-center justify-center gap-2 px-0 py-3">
+      <div
+        class="container relative flex items-center justify-center gap-2 px-0 py-3"
+      >
         <a href="/">
           <img class="h-8 w-16" src="images/imdb-logo.png" alt="Logo Image" />
         </a>
@@ -34,8 +36,25 @@
           <span class="text-sm font-semibold">Menu</span>
         </button>
         <div class="search-box flex w-1/2 items-center rounded-md bg-white">
+          <div
+            id="search-result-container"
+            class="absolute left-52 top-14 z-50 w-1/2 rounded-md bg-carousel"
+          >
+            <!-- SEARCH RESULT TEMPLATE WILL BE INSERTED HERE -->
+            <!-- <div
+              class="flex items-center gap-4 border-b-[1px] border-b-[#575757] p-3"
+            >
+              <div class="skeleton h-[72px] w-12"></div>
+              <div class="flex flex-1 flex-col gap-2">
+                <div class="skeleton h-4 w-1/5 rounded-sm"></div>
+                <div class="skeleton mb-1 h-3 w-1/12 rounded-sm"></div>
+                <div class="skeleton h-3 w-1/2 rounded-sm"></div>
+              </div>
+            </div> -->
+          </div>
           <input
             type="text"
+            id="search-input"
             class="search-input flex-1"
             placeholder="Search IMDb"
           />

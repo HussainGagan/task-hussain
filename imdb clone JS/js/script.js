@@ -7,11 +7,11 @@ const headers = {
   Authorization: "Bearer " + TMDB_TOKEN,
 };
 
-const fetchDataFromApi = async (url, params) => {
+const fetchDataFromApi = async (url, options) => {
   try {
     const { data } = await axios.get(BASE_URL + url, {
       headers,
-      params,
+      ...options,
     });
     return data;
   } catch (err) {
@@ -70,6 +70,10 @@ const nowPlaying = document.getElementById("nowPlaying");
 const carouselItems = document.querySelectorAll(".carousel-items");
 const arrLeft = document.querySelectorAll(".arrow-left");
 const arrRight = document.querySelectorAll(".arrow-right");
+const searchResultContainer = document.getElementById(
+  "search-result-container",
+);
+const searchInput = document.getElementById("search-input");
 
 const navigation = (dir, element) => {
   const scrollAmount =
@@ -294,4 +298,99 @@ function renderWatchlist() {
   watchlist.forEach((data, i) => {
     renderItem(data, i, watchlistContainer, "watchlist");
   });
+}
+
+// SEARCH RESULT SECTION
+
+const debounce = (fn, delay) => {
+  let id;
+  // console.log("Id at immediate load ", id);
+  return (...args) => {
+    // console.log("previous id:", id);
+    if (id) clearTimeout(id);
+    id = setTimeout(() => {
+      fn(...args);
+    }, delay);
+  };
+};
+
+const searchResultSkeletonTemplate = `
+<div
+  class="flex items-center gap-4 border-b-[1px] border-b-[#575757] p-3"
+>
+  <div class="skeleton h-[72px] w-12"></div>
+  <div class="flex flex-1 flex-col gap-2">
+    <div class="skeleton h-4 w-1/5 rounded-sm"></div>
+    <div class="skeleton mb-1 h-3 w-1/12 rounded-sm"></div>
+    <div class="skeleton h-3 w-1/2 rounded-sm"></div>
+  </div>
+</div>
+  `;
+
+// debouncing the search input
+const debouncedSearch = debounce(handleSearch, 250);
+
+let ctrl = new AbortController();
+
+searchInput.addEventListener("input", function (e) {
+  ctrl.abort(); // prev fetch req is aborted here
+  ctrl = new AbortController();
+  const searchQuery = e.target.value;
+  searchResultContainer.innerHTML = "";
+  if (searchQuery.length <= 1) return;
+
+  for (let i = 0; i < 5; i++) {
+    searchResultContainer.insertAdjacentHTML(
+      "afterbegin",
+      searchResultSkeletonTemplate,
+    );
+  }
+  debouncedSearch(searchQuery, ctrl);
+});
+
+function handleSearch(searchQuery, ctrl) {
+  fetchDataFromApi(`/search/multi?query=${searchQuery}`, {
+    signal: ctrl.signal,
+  }).then((res) => {
+    let generatedTemplate = res.results
+      .filter((searchItem) => {
+        return (
+          (Boolean(searchItem.release_date) ||
+            Boolean(searchItem.first_air_date)) &&
+          searchItem.vote_average > 0
+        );
+      })
+      .slice(0, 10)
+      .map(renderSearchResults);
+    generatedTemplate.push(
+      `
+      <p class="text-white p-2 text-sm font-medium cursor-pointer hover:bg-[#313131]">See all results for "${searchQuery}"</p>
+    `,
+    );
+    generatedTemplate = generatedTemplate.join("");
+    searchResultContainer.innerHTML = "";
+    searchResultContainer.insertAdjacentHTML("beforeend", generatedTemplate);
+  });
+}
+
+function renderSearchResults(data) {
+  const template = `
+  <div
+  class="flex items-center gap-4 border-b-[1px] border-b-[#575757] p-2 cursor-pointer hover:bg-[#313131]"
+>
+  <img class="h-[72px] w-12" src=${
+    data.poster_path === null
+      ? "https://m.media-amazon.com/images/I/314t8YNB69L.png"
+      : configuration.posterUrl + data.poster_path
+  } alt="search-result-image" />
+  <div class="flex flex-1 flex-col gap-1">
+    <h3 class="text-white text-base font-medium">${data.title || data.name}</h3>
+    <p class="text-grey text-sm">${new Date(
+      data.release_date || data.first_air_date,
+    ).getFullYear()}</p>
+    <p class="text-grey text-sm">${Number(data.vote_average).toFixed(2)}</p>
+  </div>
+</div>
+  `;
+  return template;
 }
